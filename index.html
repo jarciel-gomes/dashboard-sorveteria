@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorveteria | Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">🍦</span>
+    <span class="logo-text">Expresso Gellato</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#" class="nav-item active" data-section="visao-geral">
+      <span class="nav-icon">📊</span><span class="nav-label">Visão geral</span>
+    </a>
+    <a href="#" class="nav-item" data-section="vendas">
+      <span class="nav-icon">💰</span><span class="nav-label">Vendas</span>
+    </a>
+    <a href="#" class="nav-item" data-section="produtos">
+      <span class="nav-icon">🍨</span><span class="nav-label">Produtos</span>
+    </a>
+    <a href="#" class="nav-item" data-section="gastos">
+      <span class="nav-icon">💸</span><span class="nav-label">Gastos</span>
+    </a>
+    <a href="#" class="nav-item" data-section="metas">
+      <span class="nav-icon">🎯</span><span class="nav-label">Metas</span>
+    </a>
+    <a href="#" class="nav-item" data-section="historico">
+      <span class="nav-icon">🕒</span><span class="nav-label">Histórico</span>
+    </a>
+    <a href="#" class="nav-item" data-section="configuracoes">
+      <span class="nav-icon">⚙️</span><span class="nav-label">Configurações</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-mini">
+      <div class="user-avatar">JG</div>
+      <div class="user-info">
+        <span class="user-name">Jarciel Gomes</span>
+        <span class="user-role">Administrador</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<main class="main-content">
+
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>Visão geral</h1>
+      <p class="topbar-subtitle">Acompanhe o desempenho da sua sorveteria em tempo real</p>
+    </div>
+    <div class="topbar-actions">
+      <select id="month-select" class="month-select"></select>
+      <div class="live-indicator">
+        <span class="live-dot"></span>
+        Ao vivo
+      </div>
+      <div class="date-pill" id="current-date"></div>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  <div id="loading-state" class="state-box">
+    <div class="spinner"></div>
+    <p>Carregando dados da planilha...</p>
+  </div>
+
+  <!-- Error -->
+  <div id="error-state" class="state-box error-box" hidden>
+    <span class="error-icon">⚠️</span>
+    <p>Não foi possível carregar os dados. Verifique sua conexão e tente novamente.</p>
+    <button id="retry-btn" class="retry-btn">Tentar novamente</button>
+  </div>
+
+  <div id="dashboard-content" hidden>
+
+  <section id="page-visao-geral" class="page-section active-page" data-page="visao-geral">
+
+    <!-- KPIs -->
+    <section class="kpi-grid">
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Faturamento hoje</span>
+          <span class="kpi-icon icon-purple">💵</span>
+        </div>
+        <div class="kpi-value" id="kpi-today">R$ 0,00</div>
+        <div class="kpi-delta" id="kpi-today-delta"></div>
+      </div>
+
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Faturamento do mês</span>
+          <span class="kpi-icon icon-blue">📅</span>
+        </div>
+        <div class="kpi-value" id="kpi-month-revenue">R$ 0,00</div>
+      </div>
+
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Gastos do mês</span>
+          <span class="kpi-icon icon-orange">💸</span>
+        </div>
+        <div class="kpi-value" id="kpi-month-expenses">R$ 0,00</div>
+      </div>
+
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Lucro do mês</span>
+          <span class="kpi-icon icon-green">📈</span>
+        </div>
+        <div class="kpi-value" id="kpi-profit">R$ 0,00</div>
+      </div>
+
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Margem de lucro</span>
+          <span class="kpi-icon icon-green">📊</span>
+        </div>
+        <div class="kpi-value" id="kpi-margin">0%</div>
+      </div>
+
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Ticket médio/Dia</span>
+          <span class="kpi-icon icon-blue">🧾</span>
+        </div>
+        <div class="kpi-value" id="kpi-ticket">R$ 0,00</div>
+      </div>
+
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Meta mensal</span>
+          <span class="kpi-icon icon-purple">🎯</span>
+        </div>
+        <div class="kpi-value" id="kpi-goal-percent">0%</div>
+        <div class="kpi-delta" id="kpi-goal-sub"></div>
+      </div>
+
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Projeção de fechamento</span>
+          <span class="kpi-icon icon-orange">🔮</span>
+        </div>
+        <div class="kpi-value" id="kpi-projection">R$ 0,00</div>
+      </div>
+    </section>
+
+    <!-- Gráficos -->
+    <section class="charts-grid">
+      <div class="card chart-card">
+        <div class="card-header">
+          <h2>Faturamento — últimos 7 dias</h2>
+        </div>
+        <div class="bar-chart" id="bar-chart"></div>
+      </div>
+
+      <div class="card donut-card">
+        <div class="card-header">
+          <h2>Gastos por categoria</h2>
+        </div>
+        <div class="donut-wrapper">
+          <svg id="donut-chart" viewBox="0 0 200 200" width="180" height="180"></svg>
+          <ul class="donut-legend" id="donut-legend"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ranking + Metas -->
+    <section class="mid-grid">
+      <div class="card ranking-card">
+        <div class="card-header">
+          <h2>Ranking de produtos do mês</h2>
+        </div>
+        <ol class="ranking-list" id="ranking-list"></ol>
+      </div>
+
+      <div class="card goals-card">
+        <div class="card-header">
+          <h2>Meta do mês</h2>
+        </div>
+        <div class="goals-list" id="goals-list"></div>
+      </div>
+    </section>
+
+    <!-- Gastos por categoria detalhado -->
+    <section class="stock-section">
+      <div class="card-header section-header">
+        <h2>Gastos por categoria — detalhamento</h2>
+      </div>
+      <div class="stock-grid" id="expense-grid"></div>
+    </section>
+
+  </section>
+
+  <!-- Vendas -->
+  <section id="page-vendas" class="page-section" data-page="vendas">
+    <section class="kpi-grid kpi-grid-compact">
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Faturamento hoje</span>
+          <span class="kpi-icon icon-purple">💵</span>
+        </div>
+        <div class="kpi-value" id="vendas-kpi-today">R$ 0,00</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Faturamento do mês</span>
+          <span class="kpi-icon icon-blue">📅</span>
+        </div>
+        <div class="kpi-value" id="vendas-kpi-month">R$ 0,00</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Ticket médio/dia</span>
+          <span class="kpi-icon icon-green">🧾</span>
+        </div>
+        <div class="kpi-value" id="vendas-kpi-ticket">R$ 0,00</div>
+      </div>
+    </section>
+
+    <div class="card chart-card" style="margin-bottom:24px">
+      <div class="card-header">
+        <h2>Faturamento diário — mês selecionado</h2>
+      </div>
+      <div class="bar-chart" id="vendas-bar-chart"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Lançamentos do mês</h2>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead><tr><th>Data</th><th>Valor</th></tr></thead>
+          <tbody id="vendas-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Produtos -->
+  <section id="page-produtos" class="page-section" data-page="produtos">
+    <div class="card ranking-card">
+      <div class="card-header">
+        <h2>Vendas por produto — mês selecionado</h2>
+      </div>
+      <ol class="ranking-list" id="produtos-ranking-list"></ol>
+    </div>
+  </section>
+
+  <!-- Gastos -->
+  <section id="page-gastos" class="page-section" data-page="gastos">
+    <section class="kpi-grid kpi-grid-compact">
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Gastos totais no mês</span>
+          <span class="kpi-icon icon-orange">💸</span>
+        </div>
+        <div class="kpi-value" id="gastos-kpi-total">R$ 0,00</div>
+      </div>
+    </section>
+
+    <section class="stock-section">
+      <div class="card-header section-header">
+        <h2>Para onde foram direcionados os gastos</h2>
+      </div>
+      <div class="stock-grid" id="gastos-category-grid"></div>
+    </section>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Lançamentos de gastos do mês</h2>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th></tr></thead>
+          <tbody id="gastos-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Metas -->
+  <section id="page-metas" class="page-section" data-page="metas">
+    <section class="kpi-grid kpi-grid-compact">
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Lucro do mês</span>
+          <span class="kpi-icon icon-green">📈</span>
+        </div>
+        <div class="kpi-value" id="metas-kpi-profit">R$ 0,00</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Margem de lucro</span>
+          <span class="kpi-icon icon-green">📊</span>
+        </div>
+        <div class="kpi-value" id="metas-kpi-margin">0%</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-label">Projeção de fechamento</span>
+          <span class="kpi-icon icon-orange">🔮</span>
+        </div>
+        <div class="kpi-value" id="metas-kpi-projection">R$ 0,00</div>
+      </div>
+    </section>
+
+    <div class="card goals-card">
+      <div class="card-header">
+        <h2>Meta do mês</h2>
+      </div>
+      <div class="goals-list" id="metas-goals-list"></div>
+    </div>
+  </section>
+
+  <!-- Histórico -->
+  <section id="page-historico" class="page-section" data-page="historico">
+    <div class="card">
+      <div class="card-header">
+        <h2>Histórico completo de faturamento</h2>
+      </div>
+      <div class="table-wrapper table-wrapper-tall">
+        <table class="data-table">
+          <thead><tr><th>Data</th><th>Mês</th><th>Valor</th></tr></thead>
+          <tbody id="historico-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Configurações -->
+  <section id="page-configuracoes" class="page-section" data-page="configuracoes">
+    <div class="card">
+      <div class="card-header">
+        <h2>Configurações</h2>
+      </div>
+      <p class="config-row"><strong>Meta mensal:</strong> R$ 6.000,00</p>
+      <p class="config-row"><strong>Fontes de dados (Google Sheets via opensheet):</strong></p>
+      <ul class="config-list">
+        <li>Faturamento</li>
+        <li>Produtos</li>
+        <li>Gastos</li>
+      </ul>
+    </div>
+  </section>
+
+  </div>
+
+
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
