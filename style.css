@@ -631,6 +631,31 @@ body {
   text-align: right;
 }
 
+/* ---------- Comparativo com mês anterior ---------- */
+.comparison-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  padding: 10px 0;
+  border-bottom: 0.5px solid var(--border-color);
+}
+
+.comparison-row strong {
+  color: var(--text-primary);
+}
+
+.comparison-delta {
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.comparison-delta.positive { color: var(--green); }
+.comparison-delta.negative { color: var(--red); }
+
 /* ---------- Stock ---------- */
 .stock-grid {
   display: grid;

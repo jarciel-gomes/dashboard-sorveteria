@@ -10,6 +10,8 @@ const URLS = {
 const PRODUCT_COLUMNS = ["Milk-shake", "Cascão", "Casquinha", "Cascão Trufado", "Sundae", "Açaí"];
 const EXPENSE_CATEGORIES = ["Estoque", "Luz", "Aluguel", "Água", "Funcionários", "Outros"];
 const MONTHLY_GOAL = 6000;
+const WEEKLY_GOAL = 1500;
+const WEEKDAY_LABELS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
 const CATEGORY_COLORS = {
   Estoque: "#a78bfa",
@@ -92,6 +94,13 @@ function monthNameToIndex(name) {
 
 function isSameDay(a, b) {
   return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function formatDateDDMMYYYY(date) {
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 function daysInMonth(year, monthIndex) {
@@ -185,16 +194,18 @@ function renderTodayRevenue() {
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
 
+  const todayStr = formatDateDDMMYYYY(now);
+  const yesterdayStr = formatDateDDMMYYYY(yesterday);
+
   let todayTotal = 0;
   let yesterdayTotal = 0;
   let hasYesterday = false;
 
   state.faturamento.forEach((row) => {
-    const date = parseDataBR(row["Data"]);
-    if (!date) return;
+    const rowDateStr = String(row["Data"]).trim();
     const valor = parseValor(row["Valor (R$)"]);
-    if (isSameDay(date, now)) todayTotal += valor;
-    if (isSameDay(date, yesterday)) {
+    if (rowDateStr === todayStr) todayTotal += valor;
+    if (rowDateStr === yesterdayStr) {
       yesterdayTotal += valor;
       hasYesterday = true;
     }
@@ -644,6 +655,180 @@ function renderMetasPage(kpis) {
   document.getElementById("metas-kpi-projection").textContent = formatCurrency(kpis.projection);
 
   renderGoal(kpis.revenue, kpis.goalPercent, "metas-goals-list");
+  renderWeeklyGoal();
+  renderMonthComparison(getSelectedMonthInfo(), kpis.revenue);
+  renderWeekdayRanking();
+}
+
+// ---------- Bloco 1: Meta semanal ----------
+
+function getWeekRange(date) {
+  const day = date.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(date);
+  monday.setDate(date.getDate() + diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return { monday, sunday };
+}
+
+function computeWeeklyRevenue() {
+  const { monday, sunday } = getWeekRange(new Date());
+  let total = 0;
+  state.faturamento.forEach((row) => {
+    const date = parseDataBR(row["Data"]);
+    if (date && date >= monday && date <= sunday) {
+      total += parseValor(row["Valor (R$)"]);
+    }
+  });
+  return total;
+}
+
+function renderWeeklyGoal() {
+  const total = computeWeeklyRevenue();
+  const realPercent = (total / WEEKLY_GOAL) * 100;
+  const percent = Math.min(realPercent, 100);
+  const remaining = Math.max(WEEKLY_GOAL - total, 0);
+
+  const container = document.getElementById("metas-weekly-goal");
+  container.innerHTML = "";
+
+  const div = document.createElement("div");
+  div.className = "goal-item";
+  div.innerHTML = `
+    <div class="goal-top">
+      <span class="goal-name">Faturamento da semana (seg. a dom.)</span>
+      <span class="goal-values">${formatCurrency(total)} / ${formatCurrency(WEEKLY_GOAL)}</span>
+    </div>
+    <div class="goal-bar-bg">
+      <div class="goal-bar-fill" style="width:0%; background:#60a5fa"></div>
+    </div>
+    <span class="goal-percent">${formatPercent(realPercent)} atingido — faltam ${formatCurrency(remaining)}</span>
+  `;
+
+  container.appendChild(div);
+
+  const fill = div.querySelector(".goal-bar-fill");
+  requestAnimationFrame(() => {
+    fill.style.width = `${percent}%`;
+  });
+}
+
+// ---------- Bloco 2: Comparativo com mês anterior ----------
+
+function getPreviousMonthInfo(info) {
+  let mesIdx = info.mesIdx - 1;
+  let ano = info.ano;
+  if (mesIdx < 0) {
+    mesIdx = 11;
+    ano -= 1;
+  }
+  return { ano, mesIdx };
+}
+
+function computeMonthComparison(info, currentTotal) {
+  const now = new Date();
+  const isCurrentMonth = info.ano === now.getFullYear() && info.mesIdx === now.getMonth();
+  const cutoffDay = isCurrentMonth ? now.getDate() : daysInMonth(info.ano, info.mesIdx);
+
+  const prevInfo = getPreviousMonthInfo(info);
+  const prevKey = `${prevInfo.ano}-${prevInfo.mesIdx}`;
+
+  let prevTotal = 0;
+  state.faturamento.forEach((row) => {
+    if (monthKeyOf(row) !== prevKey) return;
+    const date = parseDataBR(row["Data"]);
+    if (date && date.getDate() <= cutoffDay) {
+      prevTotal += parseValor(row["Valor (R$)"]);
+    }
+  });
+
+  const variation = prevTotal > 0
+    ? ((currentTotal - prevTotal) / prevTotal) * 100
+    : (currentTotal > 0 ? 100 : 0);
+
+  return { prevTotal, variation, cutoffDay, prevInfo };
+}
+
+function renderMonthComparison(info, currentTotal) {
+  const container = document.getElementById("metas-month-comparison");
+  if (!info) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const { prevTotal, variation, cutoffDay, prevInfo } = computeMonthComparison(info, currentTotal);
+  const prevLabel = MONTHS_PT[prevInfo.mesIdx];
+  const prevLabelCap = prevLabel.charAt(0).toUpperCase() + prevLabel.slice(1);
+  const isUp = variation >= 0;
+
+  container.innerHTML = `
+    <div class="comparison-row">
+      <span>Mês selecionado (até dia ${cutoffDay})</span>
+      <strong>${formatCurrency(currentTotal)}</strong>
+    </div>
+    <div class="comparison-row">
+      <span>${prevLabelCap} ${prevInfo.ano} (até dia ${cutoffDay})</span>
+      <strong>${formatCurrency(prevTotal)}</strong>
+    </div>
+    <div class="comparison-delta ${isUp ? "positive" : "negative"}">
+      ${isUp ? "▲" : "▼"} ${Math.abs(variation).toFixed(1)}% vs. mês anterior
+    </div>
+  `;
+}
+
+// ---------- Bloco 3: Melhor dia da semana ----------
+
+function computeWeekdayAverages() {
+  const sums = new Array(7).fill(0);
+  const counts = new Array(7).fill(0);
+
+  state.faturamento.forEach((row) => {
+    const date = parseDataBR(row["Data"]);
+    if (!date) return;
+    const valor = parseValor(row["Valor (R$)"]);
+    const idx = (date.getDay() + 6) % 7;
+    sums[idx] += valor;
+    counts[idx] += 1;
+  });
+
+  return WEEKDAY_LABELS
+    .map((label, idx) => ({ label, avg: counts[idx] > 0 ? sums[idx] / counts[idx] : 0 }))
+    .sort((a, b) => b.avg - a.avg);
+}
+
+function renderWeekdayRanking() {
+  const data = computeWeekdayAverages();
+  const list = document.getElementById("metas-weekday-ranking");
+  list.innerHTML = "";
+
+  const max = Math.max(...data.map((d) => d.avg), 1);
+
+  data.forEach((d, index) => {
+    const li = document.createElement("li");
+    li.className = "ranking-item";
+    const percent = (d.avg / max) * 100;
+
+    li.innerHTML = `
+      <span class="rank-pos">${index + 1}</span>
+      <div class="rank-info">
+        <span class="rank-name">${d.label}</span>
+        <div class="rank-bar-bg">
+          <div class="rank-bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+      <span class="rank-qty">${formatCurrency(d.avg)}</span>
+    `;
+
+    list.appendChild(li);
+
+    const fill = li.querySelector(".rank-bar-fill");
+    requestAnimationFrame(() => {
+      fill.style.width = `${percent}%`;
+    });
+  });
 }
 
 // ---------- Página Histórico ----------
